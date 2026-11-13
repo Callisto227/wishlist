@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Wishlist</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Wishlist">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#fff0f5">
+<style>
+:root{--bg:#fff0f5;--card:#fff;--ink:#3a1f33;--mute:#9b7f92;--acc:#e0457b;--acc2:#b69cff;--soft:#ffe0ec;--line:#f6d3e2;color-scheme:light}
+@media(prefers-color-scheme:dark){:root{--bg:#1f1220;--card:#2b1a2e;--ink:#fbe9f2;--mute:#b996ad;--acc:#ff7aa8;--acc2:#a88bf0;--soft:#3d2442;--line:#4a2d50;color-scheme:dark}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-serif}
+body{padding:env(safe-area-inset-top) 0 calc(96px + env(safe-area-inset-bottom))}
+header{padding:18px 18px 6px}
+h1{margin:0;font-size:30px;font-weight:800;letter-spacing:-.5px}
+.sub{color:var(--mute);font-size:14px;margin-top:2px}
+.sum{display:flex;gap:10px;margin:14px 18px 4px}
+.sum div{flex:1;background:var(--card);border-radius:20px;padding:12px 14px;border:1px solid var(--line)}
+.sum b{display:block;font-size:20px}.sum span{font-size:12px;color:var(--mute)}
+.bar{height:8px;background:var(--soft);border-radius:9px;margin:10px 18px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--acc),var(--acc2));border-radius:9px;transition:width .5s}
+.search{margin:8px 18px}
+input,select,textarea{width:100%;font:inherit;font-size:16px;color:var(--ink);background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:12px 14px;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--acc)}
+.row{display:flex;gap:8px;overflow-x:auto;padding:6px 18px;scrollbar-width:none}
+.row::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:99px;padding:8px 14px;font:inherit;font-size:14px}
+.chip.on{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:700}
+.tabs{display:flex;margin:6px 18px;background:var(--soft);border-radius:16px;padding:4px}
+.tabs button{flex:1;border:0;background:none;padding:9px;border-radius:12px;font:inherit;font-weight:700;color:var(--mute)}
+.tabs button.on{background:var(--card);color:var(--acc);box-shadow:0 2px 8px #e0457b22}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:8px 18px}
+.card{background:var(--card);border-radius:22px;overflow:hidden;border:1px solid var(--line);position:relative;cursor:pointer}
+.card:active{transform:scale(.97)}
+.ph{aspect-ratio:1;background:linear-gradient(135deg,var(--soft),var(--card));display:grid;place-items:center;font-size:46px;background-size:cover;background-position:center}
+.card .t{padding:10px 12px 12px}
+.card .n{font-weight:700;font-size:15px;line-height:1.2;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.card .p{color:var(--acc);font-weight:800;margin-top:4px;font-size:14px}
+.card .h{font-size:12px;letter-spacing:1px;margin-top:2px}
+.badge{position:absolute;top:8px;left:8px;background:#fffc;backdrop-filter:blur(6px);border-radius:99px;padding:3px 8px;font-size:12px;color:#3a1f33}
+.card.done .ph{filter:grayscale(.5) opacity(.7)}
+.empty{text-align:center;color:var(--mute);padding:50px 30px;grid-column:1/-1}
+.empty big{display:block;font-size:54px}
+.fab{position:fixed;right:20px;bottom:calc(22px + env(safe-area-inset-bottom));width:62px;height:62px;border-radius:50%;border:0;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:34px;box-shadow:0 8px 24px #e0457b66}
+.fab2{position:fixed;left:20px;bottom:calc(30px + env(safe-area-inset-bottom));border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:99px;padding:12px 16px;font:inherit;font-size:14px}
+.sheet-bg{position:fixed;inset:0;background:#2b0f2288;display:none;z-index:5}
+.sheet-bg.open{display:block}
+.sheet{position:absolute;left:0;right:0;bottom:0;max-height:92%;overflow:auto;background:var(--bg);border-radius:28px 28px 0 0;padding:18px 18px calc(24px + env(safe-area-inset-bottom));animation:up .25s ease-out}
+@keyframes up{from{transform:translateY(40%);opacity:0}}
+.sheet h2{margin:0 0 12px;font-size:22px}
+label{display:block;font-size:13px;color:var(--mute);margin:12px 4px 5px}
+.hearts{display:flex;gap:6px;font-size:30px}.hearts span{opacity:.25;cursor:pointer}.hearts span.on{opacity:1}
+.btn{width:100%;border:0;border-radius:18px;padding:15px;font:inherit;font-weight:800;font-size:16px;margin-top:12px;background:var(--acc);color:#fff}
+.btn.alt{background:var(--soft);color:var(--acc)}.btn.del{background:none;color:var(--mute);font-weight:600}
+.photo{display:flex;gap:10px;align-items:center}
+.photo img{width:64px;height:64px;border-radius:16px;object-fit:cover}
+.toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:99px;font-size:14px;z-index:9;opacity:0;transition:.3s;pointer-events:none}
+.toast.on{opacity:1}
+canvas{position:fixed;inset:0;pointer-events:none;z-index:8}
+</style>
+</head>
+<body>
+<header><h1>Мої бажання ✨</h1><div class="sub" id="sub"></div></header>
+<div class="sum"><div><b id="sumLeft">0 ₴</b><span>ще хочу на суму</span></div><div><b id="sumDone">0</b><span>вже здійснено 💖</span></div></div>
+<div class="bar"><i id="bar"></i></div>
+<div class="search"><input id="q" type="search" placeholder="Пошук 🔍"></div>
+<div class="row" id="cats"></div>
+<div class="tabs"><button id="tw" class="on">Хочу</button><button id="td">Здійснено</button></div>
+<div class="grid" id="grid"></div>
+<button class="fab2" id="menu">⚙️ Ще</button>
+<button class="fab" id="add" aria-label="Додати">+</button>
+
+<div class="sheet-bg" id="bg"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"></div>
+<canvas id="cv"></canvas>
+
+<script>
+const CATS=[["👗","Одяг"],["💄","Краса"],["🏠","Дім"],["✈️","Подорожі"],["📚","Книги"],["💻","Техніка"],["🎁","Інше"]];
+const KEY="wishlist_v1";
+let S={items:[]},cat="all",tab="want",q="",editId=null,draft={};
+try{S=JSON.parse(localStorage.getItem(KEY))||S}catch(e){}
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const money=n=>Math.round(n).toLocaleString("uk-UA")+" ₴";
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast("Пам'ять заповнена, зроби резервну копію 🙈")}}
+function toast(t){const e=$("toast");e.textContent=t;e.classList.add("on");setTimeout(()=>e.classList.remove("on"),2200)}
+const em=c=>(CATS.find(x=>x[1]===c)||["🎁"])[0];
+
+function render(){
+  const want=S.items.filter(i=>!i.done),done=S.items.filter(i=>i.done);
+  $("sumLeft").textContent=money(want.reduce((a,i)=>a+(+i.price||0),0));
+  $("sumDone").textContent=done.length;
+  $("bar").style.width=S.items.length?Math.round(done.length/S.items.length*100)+"%":"0";
+  $("sub").textContent=want.length?`${want.length} ${want.length===1?"мрія чекає":"мрій чекають"} на тебе`:"Додай першу мрію 💭";
+  $("cats").innerHTML=[["all","💗 Усе"],...CATS.map(c=>[c[1],c[0]+" "+c[1]])].map(([k,l])=>`<button class="chip ${cat===k?"on":""}" data-c="${k}">${l}</button>`).join("");
+  $("tw").classList.toggle("on",tab==="want");$("td").classList.toggle("on",tab==="done");
+  let list=S.items.filter(i=>!!i.done===(tab==="done")&&(cat==="all"||i.cat===cat)&&i.name.toLowerCase().includes(q));
+  list.sort((a,b)=>(b.pr||0)-(a.pr||0)||b.created-a.created);
+  $("grid").innerHTML=list.length?list.map(i=>`<div class="card ${i.done?"done":""}" data-id="${i.id}">
+    <div class="ph" style="${i.img?`background-image:url(${i.img})`:""}">${i.img?"":em(i.cat)}</div>
+    ${i.done?'<span class="badge">✅ є</span>':""}
+    <div class="t"><div class="n">${esc(i.name)}</div>${i.price?`<div class="p">${money(i.price)}</div>`:""}<div class="h">${"💗".repeat(i.pr||0)}</div></div></div>`).join("")
+    :`<div class="empty"><big>${tab==="done"?"🎀":"🦋"}</big>${tab==="done"?"Тут з'являться здійснені мрії":"Поки що порожньо. Натисни + і додай бажання"}</div>`;
+}
+$("cats").onclick=e=>{const c=e.target.dataset.c;if(c){cat=c;render()}};
+$("tw").onclick=()=>{tab="want";render()};$("td").onclick=()=>{tab="done";render()};
+$("q").oninput=e=>{q=e.target.value.toLowerCase().trim();render()};
+$("grid").onclick=e=>{const c=e.target.closest(".card");if(c)openForm(c.dataset.id)};
+$("add").onclick=()=>openForm(null);
+$("bg").onclick=e=>{if(e.target.id==="bg")close()};
+function close(){$("bg").classList.remove("open")}
+function open(h){$("sheet").innerHTML=h;$("bg").classList.add("open")}
+
+function openForm(id){
+  editId=id;const i=id?S.items.find(x=>x.id===id):null;
+  draft=i?{...i}:{name:"",price:"",cat:"Інше",pr:2,link:"",note:"",img:""};
+  open(`<h2>${i?"Редагувати":"Нове бажання"} 💭</h2>
+  <label>Що хочеш?</label><input id="f_n" value="${esc(draft.name)}" placeholder="Наприклад, шовкова піжама">
+  <label>Ціна, ₴</label><input id="f_p" type="number" inputmode="decimal" value="${esc(draft.price)}" placeholder="0">
+  <label>Категорія</label><select id="f_c">${CATS.map(c=>`<option ${c[1]===draft.cat?"selected":""}>${c[1]}</option>`).join("")}</select>
+  <label>Наскільки хочеш?</label><div class="hearts" id="f_h">${[1,2,3].map(n=>`<span data-n="${n}" class="${n<=draft.pr?"on":""}">💗</span>`).join("")}</div>
+  <label>Посилання на магазин</label><input id="f_l" type="url" value="${esc(draft.link)}" placeholder="https://...">
+  <label>Нотатка (розмір, колір…)</label><textarea id="f_t" rows="2">${esc(draft.note)}</textarea>
+  <label>Фото</label><div class="photo"><img id="f_i" ${draft.img?`src="${draft.img}"`:'hidden'}><input id="f_f" type="file" accept="image/*"></div>
+  <button class="btn" id="ok">Зберегти</button>
+  ${i&&draft.link?`<button class="btn alt" id="go">Відкрити в магазині 🛍️</button>`:""}
+  ${i?`<button class="btn alt" id="dn">${i.done?"Повернути в «Хочу»":"Я це отримала! 🎉"}</button><button class="btn del" id="rm">Видалити</button>`:""}`);
+  $("f_h").onclick=e=>{const n=+e.target.dataset.n;if(!n)return;draft.pr=n;[...$("f_h").children].forEach((s,k)=>s.classList.toggle("on",k<n))};
+  $("f_f").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const s=Math.min(1,500/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=im.width*s;c.height=im.height*s;c.getContext("2d").drawImage(im,0,0,c.width,c.height);draft.img=c.toDataURL("image/jpeg",.72);$("f_i").src=draft.img;$("f_i").hidden=false};im.src=r.result};r.readAsDataURL(f)};
+  $("ok").onclick=()=>{
+    const name=$("f_n").value.trim();if(!name){toast("Напиши, що саме хочеш 💕");return}
+    Object.assign(draft,{name,price:+$("f_p").value||0,cat:$("f_c").value,link:$("f_l").value.trim(),note:$("f_t").value.trim()});
+    if(i)Object.assign(i,draft);else S.items.push({...draft,id:Date.now().toString(36),created:Date.now(),done:false});
+    save();close();render();toast("Збережено ✨")};
+  if($("go"))$("go").onclick=()=>window.open(draft.link,"_blank");
+  if($("dn"))$("dn").onclick=()=>{i.done=!i.done;i.doneAt=Date.now();save();close();render();if(i.done){confetti();toast("Ура! Мрія здійснена 🎉")}};
+  if($("rm"))$("rm").onclick=()=>{if(confirm("Видалити це бажання?")){S.items=S.items.filter(x=>x.id!==id);save();close();render()}};
+}
+
+$("menu").onclick=()=>{
+  open(`<h2>Ще ⚙️</h2>
+  <button class="btn" id="sh">Поділитися списком 💌</button>
+  <button class="btn alt" id="rnd">Що купити першим? 🎲</button>
+  <button class="btn alt" id="ex">Зберегти резервну копію</button>
+  <button class="btn alt" id="im">Відновити з копії</button>
+  <input id="imf" type="file" accept="application/json" hidden>
+  <div class="sub" style="margin-top:14px;text-align:center">Дані зберігаються на цьому телефоні. Раз на деякий час роби резервну копію 💾</div>`);
+  $("sh").onclick=async()=>{const t="Мій wishlist ✨\n\n"+S.items.filter(i=>!i.done).sort((a,b)=>(b.pr||0)-(a.pr||0)).map(i=>`${"💗".repeat(i.pr||0)} ${i.name}${i.price?" — "+money(i.price):""}${i.link?"\n"+i.link:""}`).join("\n");
+    if(navigator.share)try{await navigator.share({text:t})}catch(e){}else{await navigator.clipboard.writeText(t);toast("Скопійовано 📋")}};
+  $("rnd").onclick=()=>{const w=S.items.filter(i=>!i.done);if(!w.length){toast("Спершу додай бажання 💭");return}
+    const pool=w.flatMap(i=>Array((i.pr||1)).fill(i));const p=pool[Math.floor(Math.random()*pool.length)];close();openForm(p.id);toast("Може, ось це? 🎀")};
+  $("ex").onclick=()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:"application/json"}));a.download="wishlist-backup.json";a.click()};
+  $("im").onclick=()=>$("imf").click();
+  $("imf").onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{const d=JSON.parse(t);if(!Array.isArray(d.items))throw 0;S=d;save();close();render();toast("Відновлено 💖")}catch(x){toast("Файл не підходить 🙈")}})};
+};
+
+function confetti(){const c=$("cv"),x=c.getContext("2d");c.width=innerWidth;c.height=innerHeight;
+  const P=Array.from({length:70},()=>({x:innerWidth/2,y:innerHeight*.6,vx:(Math.random()-.5)*12,vy:-Math.random()*14-4,e:["💗","✨","🎀","💖","🌸"][Math.floor(Math.random()*5)],s:16+Math.random()*14}));
+  let f=0;(function t(){x.clearRect(0,0,c.width,c.height);P.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.4;x.font=p.s+"px serif";x.fillText(p.e,p.x,p.y)});if(++f<90)requestAnimationFrame(t);else x.clearRect(0,0,c.width,c.height)})()}
+
+if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();
+if("serviceWorker"in navigator)addEventListener("load",()=>navigator.serviceWorker.register("sw.js"));
+render();
+</script>
+</body>
+</html>
