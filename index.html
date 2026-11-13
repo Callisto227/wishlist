@@ -66,7 +66,7 @@ canvas{position:fixed;inset:0;pointer-events:none;z-index:8}
 </style>
 </head>
 <body>
-<header><h1>Мої бажання ✨</h1><div class="sub" id="sub"></div></header>
+<header><h1>Мої бажання ✨</h1><div class="sub" id="sub"></div><div class="sub" id="sync" style="cursor:pointer"></div></header>
 <div class="sum"><div><b id="sumLeft">0 ₴</b><span>ще хочу на суму</span></div><div><b id="sumDone">0</b><span>вже здійснено 💖</span></div></div>
 <div class="bar"><i id="bar"></i></div>
 <div class="search"><input id="q" type="search" placeholder="Пошук 🔍"></div>
@@ -83,24 +83,26 @@ canvas{position:fixed;inset:0;pointer-events:none;z-index:8}
 <script>
 const CATS=[["👗","Одяг"],["💄","Краса"],["🏠","Дім"],["✈️","Подорожі"],["📚","Книги"],["💻","Техніка"],["🎁","Інше"]];
 const KEY="wishlist_v1";
+const LIVE=()=>S.items.filter(i=>!i.del);
 let S={items:[]},cat="all",tab="want",q="",editId=null,draft={};
 try{S=JSON.parse(localStorage.getItem(KEY))||S}catch(e){}
+S.items.forEach(i=>i.upd=i.upd||i.created||1);
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const money=n=>Math.round(n).toLocaleString("uk-UA")+" ₴";
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast("Пам'ять заповнена, зроби резервну копію 🙈")}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));localStorage.setItem("wl_dirty","1")}catch(e){toast("Пам'ять заповнена 🙈")}schedule()}
 function toast(t){const e=$("toast");e.textContent=t;e.classList.add("on");setTimeout(()=>e.classList.remove("on"),2200)}
 const em=c=>(CATS.find(x=>x[1]===c)||["🎁"])[0];
 
 function render(){
-  const want=S.items.filter(i=>!i.done),done=S.items.filter(i=>i.done);
+  const want=LIVE().filter(i=>!i.done),done=LIVE().filter(i=>i.done);
   $("sumLeft").textContent=money(want.reduce((a,i)=>a+(+i.price||0),0));
   $("sumDone").textContent=done.length;
-  $("bar").style.width=S.items.length?Math.round(done.length/S.items.length*100)+"%":"0";
+  $("bar").style.width=LIVE().length?Math.round(done.length/LIVE().length*100)+"%":"0";
   $("sub").textContent=want.length?`${want.length} ${want.length===1?"мрія чекає":"мрій чекають"} на тебе`:"Додай першу мрію 💭";
   $("cats").innerHTML=[["all","💗 Усе"],...CATS.map(c=>[c[1],c[0]+" "+c[1]])].map(([k,l])=>`<button class="chip ${cat===k?"on":""}" data-c="${k}">${l}</button>`).join("");
   $("tw").classList.toggle("on",tab==="want");$("td").classList.toggle("on",tab==="done");
-  let list=S.items.filter(i=>!!i.done===(tab==="done")&&(cat==="all"||i.cat===cat)&&i.name.toLowerCase().includes(q));
+  let list=LIVE().filter(i=>!!i.done===(tab==="done")&&(cat==="all"||i.cat===cat)&&i.name.toLowerCase().includes(q));
   list.sort((a,b)=>(b.pr||0)-(a.pr||0)||b.created-a.created);
   $("grid").innerHTML=list.length?list.map(i=>`<div class="card ${i.done?"done":""}" data-id="${i.id}">
     <div class="ph" style="${i.img?`background-image:url(${i.img})`:""}">${i.img?"":em(i.cat)}</div>
@@ -118,28 +120,40 @@ function close(){$("bg").classList.remove("open")}
 function open(h){$("sheet").innerHTML=h;$("bg").classList.add("open")}
 
 const PROX=[u=>"https://api.allorigins.win/raw?url="+encodeURIComponent(u),u=>"https://corsproxy.io/?url="+encodeURIComponent(u),u=>"https://api.codetabs.com/v1/proxy?quest="+encodeURIComponent(u)];
-async function getHtml(url){for(const p of PROX){try{const c=new AbortController(),t=setTimeout(()=>c.abort(),9000);const r=await fetch(p(url),{signal:c.signal});clearTimeout(t);if(r.ok){const x=await r.text();if(x.length>500)return x}}catch(e){}}return null}
-const KW={"Одяг":/сукн|плат|футболк|джинс|куртк|взутт|кросівк|сумк|светр|dress|shirt|jeans|shoe|bag|sneaker/i,"Краса":/крем|парфум|помад|тіні|шампун|сироватк|косметик|perfume|serum|lip|makeup|mascara/i,"Дім":/свічк|ковдр|подушк|лампа|ваз|посуд|килим|candle|lamp|blanket/i,"Техніка":/iphone|airpods|ноутбук|навушник|планшет|смартфон|телефон|laptop|ipad|годинник|watch/i,"Книги":/книг|book/i};
+async function jget(u,t=9000){try{const c=new AbortController(),k=setTimeout(()=>c.abort(),t);const r=await fetch(u,{signal:c.signal});clearTimeout(k);return r.ok?r:null}catch(e){return null}}
+async function getHtml(url){for(const p of PROX){const r=await jget(p(url));if(r){const x=await r.text();if(x.length>500)return x}}return null}
+const KW={"Краса":/крем|парфум|помад|тіні|шампун|сироватк|косметик|perfume|serum|lip|makeup|mascara|sephora|notino|brocard|douglas|makeup\.com/i,"Одяг":/сукн|плат|футболк|джинс|куртк|взутт|кросівк|сумк|светр|пальто|dress|shirt|jeans|shoe|bag|sneaker|zara|hm\.com|reserved|mango|asos|answear|modivo|lamoda/i,"Дім":/свічк|ковдр|подушк|лампа|ваз|посуд|килим|candle|lamp|blanket|ikea|epicentr|jysk/i,"Техніка":/iphone|airpods|ноутбук|навушник|планшет|смартфон|телефон|laptop|ipad|годинник|watch|rozetka|foxtrot|comfy|apple\.com/i,"Книги":/книг|book|yakaboo|nashformat/i,"Подорожі":/квитк|готел|hotel|booking|airbnb|тур\b|flight/i};
+const num=v=>Math.round(parseFloat(String(v||"").replace(/[\s\u00a0]/g,"").replace(",","."))||0);
 async function getMeta(url){
-  const html=await getHtml(url);if(!html)return null;
-  const d=new DOMParser().parseFromString(html,"text/html");
-  const m=(...ks)=>{for(const k of ks){const e=d.querySelector(`meta[property="${k}"],meta[name="${k}"],meta[itemprop="${k}"]`);if(e&&e.content)return e.content.trim()}return""};
-  const f={};
-  const walk=o=>{if(!o||typeof o!=="object")return;if(Array.isArray(o))return o.forEach(walk);
-    if([].concat(o["@type"]||[]).includes("Product")){f.name=f.name||o.name;const im=[].concat(o.image||[])[0];f.img=f.img||(im&&typeof im==="object"?im.url:im)}
-    if(o.price||o.lowPrice)f.price=f.price||o.price||o.lowPrice;
-    Object.values(o).forEach(walk)};
-  d.querySelectorAll('script[type="application/ld+json"]').forEach(x=>{try{walk(JSON.parse(x.textContent))}catch(e){}});
-  const name=String(f.name||m("og:title","twitter:title")||d.title||"").trim().slice(0,120);
-  let img=f.img||m("og:image","twitter:image");
-  try{if(img)img=new URL(img,url).href}catch(e){}
-  const price=Math.round(parseFloat(String(f.price||m("product:price:amount","og:price:amount","price")).replace(/\s/g,"").replace(",","."))||0);
-  const cat=Object.keys(KW).find(k=>KW[k].test(name));
-  if(!name&&!img&&!price)return null;
-  return{name,img,price,cat};
+  const o={name:"",img:"",price:0,cat:""};let desc="";
+  const html=await getHtml(url);
+  if(html){
+    const d=new DOMParser().parseFromString(html,"text/html");
+    const m=(...ks)=>{for(const k of ks){const e=d.querySelector(`meta[property="${k}"],meta[name="${k}"],meta[itemprop="${k}"]`);if(e&&e.content)return e.content.trim()}return""};
+    const f={};
+    const walk=x=>{if(!x||typeof x!=="object")return;if(Array.isArray(x))return x.forEach(walk);
+      if([].concat(x["@type"]||[]).includes("Product")){f.name=f.name||x.name;const im=[].concat(x.image||[])[0];f.img=f.img||(im&&typeof im==="object"?im.url:im)}
+      if(x.price||x.lowPrice)f.price=f.price||x.price||x.lowPrice;Object.values(x).forEach(walk)};
+    d.querySelectorAll('script[type="application/ld+json"]').forEach(x=>{try{walk(JSON.parse(x.textContent))}catch(e){}});
+    o.name=String(f.name||m("og:title","twitter:title")||d.title||"").trim();
+    o.img=f.img||m("og:image","twitter:image");desc=m("og:description","description");
+    o.price=num(f.price||m("product:price:amount","og:price:amount","price"));
+    if(!o.price){const r=html.match(/"price"\s*:\s*"?(\d[\d.,]*)/);if(r)o.price=num(r[1])}
+  }
+  if(!o.name||!o.img){const r=await jget("https://api.microlink.io/?url="+encodeURIComponent(url));
+    if(r){try{const j=(await r.json()).data||{};o.name=o.name||j.title||"";o.img=o.img||(j.image&&j.image.url)||"";desc=desc||j.description||""}catch(e){}}}
+  if(!o.price||!o.name||!o.img){const r=await jget("https://r.jina.ai/"+url,15000);
+    if(r){const t=await r.text();
+      o.name=o.name||((t.match(/^Title:\s*(.+)$/m)||[])[1]||"");
+      if(!o.price){const p=t.match(/(\d[\d\s\u00a0]{1,8}(?:[.,]\d{1,2})?)\s*(?:₴|грн|UAH)/i)||t.match(/(?:₴|грн\.?|UAH)\s*(\d[\d\s\u00a0]{1,8}(?:[.,]\d{1,2})?)/i);if(p)o.price=num(p[1])}
+      if(!o.img){const g=t.match(/!\[[^\]]*\]\((https?:[^)\s]+)\)/);if(g)o.img=g[1]}}}
+  o.name=o.name.replace(/\s*[|–—]\s*[^|–—]{2,40}$/,"").replace(/\s+(купити|купить|buy)\b.*$/i,"").trim().slice(0,120);
+  try{if(o.img)o.img=new URL(o.img,url).href}catch(e){}
+  o.cat=Object.keys(KW).find(k=>KW[k].test(o.name+" "+desc+" "+url))||"";
+  return(o.name||o.img||o.price)?o:null;
 }
 async function getImg(u){
-  try{const r=await fetch("https://wsrv.nl/?url="+encodeURIComponent(u)+"&w=500&h=500&fit=cover&output=jpg&q=75");if(!r.ok)throw 0;
+  try{const r=await fetch("https://wsrv.nl/?url="+encodeURIComponent(u)+"&w=480&h=480&fit=cover&output=jpg&q=75");if(!r.ok)throw 0;
     const b=await r.blob();return await new Promise(ok=>{const fr=new FileReader();fr.onload=()=>ok(fr.result);fr.readAsDataURL(b)})}catch(e){return u}
 }
 
@@ -159,7 +173,7 @@ function openForm(id){
   ${i&&draft.link?`<button class="btn alt" id="go">Відкрити в магазині 🛍️</button><button class="btn alt" id="rf">Оновити ціну з сайту 🔄</button>`:""}
   ${i?`<button class="btn alt" id="dn">${i.done?"Повернути в «Хочу»":"Я це отримала! 🎉"}</button><button class="btn del" id="rm">Видалити</button>`:""}`);
   $("f_h").onclick=e=>{const n=+e.target.dataset.n;if(!n)return;draft.pr=n;[...$("f_h").children].forEach((s,k)=>s.classList.toggle("on",k<n))};
-  $("f_f").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const s=Math.min(1,500/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=im.width*s;c.height=im.height*s;c.getContext("2d").drawImage(im,0,0,c.width,c.height);draft.img=c.toDataURL("image/jpeg",.72);$("f_i").src=draft.img;$("f_i").hidden=false};im.src=r.result};r.readAsDataURL(f)};
+  $("f_f").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const s=Math.min(1,480/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=im.width*s;c.height=im.height*s;c.getContext("2d").drawImage(im,0,0,c.width,c.height);draft.img=c.toDataURL("image/jpeg",.72);$("f_i").src=draft.img;$("f_i").hidden=false};im.src=r.result};r.readAsDataURL(f)};
   const L=$("f_l"),ST=$("f_st");
   async function grab(force){
     const url=L.value.trim();if(!/^https?:\/\//i.test(url))return;
@@ -181,26 +195,28 @@ function openForm(id){
   $("ok").onclick=()=>{
     const name=$("f_n").value.trim();if(!name){toast("Напиши, що саме хочеш 💕");return}
     Object.assign(draft,{name,price:+$("f_p").value||0,cat:$("f_c").value,link:$("f_l").value.trim(),note:$("f_t").value.trim()});
-    if(i)Object.assign(i,draft);else S.items.push({...draft,id:Date.now().toString(36),created:Date.now(),done:false});
+    if(i)Object.assign(i,draft,{upd:Date.now()});else S.items.push({...draft,id:Date.now().toString(36),created:Date.now(),upd:Date.now(),done:false});
     save();close();render();toast("Збережено ✨")};
   if($("go"))$("go").onclick=()=>window.open(draft.link,"_blank");
-  if($("dn"))$("dn").onclick=()=>{i.done=!i.done;i.doneAt=Date.now();save();close();render();if(i.done){confetti();toast("Ура! Мрія здійснена 🎉")}};
-  if($("rm"))$("rm").onclick=()=>{if(confirm("Видалити це бажання?")){S.items=S.items.filter(x=>x.id!==id);save();close();render()}};
+  if($("dn"))$("dn").onclick=()=>{i.done=!i.done;i.doneAt=Date.now();i.upd=Date.now();save();close();render();if(i.done){confetti();toast("Ура! Мрія здійснена 🎉")}};
+  if($("rm"))$("rm").onclick=()=>{if(confirm("Видалити це бажання?")){S.items=S.items.map(x=>x.id===id?{id,del:1,upd:Date.now()}:x);save();close();render()}};
 }
 
 $("menu").onclick=()=>{
   open(`<h2>Ще ⚙️</h2>
-  <button class="btn" id="sh">Поділитися списком 💌</button>
+  <button class="btn" id="cl">☁️ Синхронізація з GitHub</button>
+  <button class="btn alt" id="sh">Поділитися списком 💌</button>
   <button class="btn alt" id="rnd">Що купити першим? 🎲</button>
   <button class="btn alt" id="ex">Зберегти резервну копію</button>
   <button class="btn alt" id="im">Відновити з копії</button>
   <input id="imf" type="file" accept="application/json" hidden>
   <div class="sub" style="margin-top:14px;text-align:center">Дані зберігаються на цьому телефоні. Раз на деякий час роби резервну копію 💾</div>`);
-  $("sh").onclick=async()=>{const t="Мій wishlist ✨\n\n"+S.items.filter(i=>!i.done).sort((a,b)=>(b.pr||0)-(a.pr||0)).map(i=>`${"💗".repeat(i.pr||0)} ${i.name}${i.price?" — "+money(i.price):""}${i.link?"\n"+i.link:""}`).join("\n");
+  $("sh").onclick=async()=>{const t="Мій wishlist ✨\n\n"+LIVE().filter(i=>!i.done).sort((a,b)=>(b.pr||0)-(a.pr||0)).map(i=>`${"💗".repeat(i.pr||0)} ${i.name}${i.price?" — "+money(i.price):""}${i.link?"\n"+i.link:""}`).join("\n");
     if(navigator.share)try{await navigator.share({text:t})}catch(e){}else{await navigator.clipboard.writeText(t);toast("Скопійовано 📋")}};
-  $("rnd").onclick=()=>{const w=S.items.filter(i=>!i.done);if(!w.length){toast("Спершу додай бажання 💭");return}
+  $("rnd").onclick=()=>{const w=LIVE().filter(i=>!i.done);if(!w.length){toast("Спершу додай бажання 💭");return}
     const pool=w.flatMap(i=>Array((i.pr||1)).fill(i));const p=pool[Math.floor(Math.random()*pool.length)];close();openForm(p.id);toast("Може, ось це? 🎀")};
   $("ex").onclick=()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:"application/json"}));a.download="wishlist-backup.json";a.click()};
+  $("cl").onclick=cloud;
   $("im").onclick=()=>$("imf").click();
   $("imf").onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{const d=JSON.parse(t);if(!Array.isArray(d.items))throw 0;S=d;save();close();render();toast("Відновлено 💖")}catch(x){toast("Файл не підходить 🙈")}})};
 };
@@ -208,6 +224,52 @@ $("menu").onclick=()=>{
 function confetti(){const c=$("cv"),x=c.getContext("2d");c.width=innerWidth;c.height=innerHeight;
   const P=Array.from({length:70},()=>({x:innerWidth/2,y:innerHeight*.6,vx:(Math.random()-.5)*12,vy:-Math.random()*14-4,e:["💗","✨","🎀","💖","🌸"][Math.floor(Math.random()*5)],s:16+Math.random()*14}));
   let f=0;(function t(){x.clearRect(0,0,c.width,c.height);P.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.4;x.font=p.s+"px serif";x.fillText(p.e,p.x,p.y)});if(++f<90)requestAnimationFrame(t);else x.clearRect(0,0,c.width,c.height)})()}
+
+/* ---- GitHub sync ---- */
+const SK="wl_sync";let SY=null,syncT=null,busy=false,again=false;
+try{SY=JSON.parse(localStorage.getItem(SK))}catch(e){}
+const setSt=t=>{$("sync").textContent=t};
+const api=(p,o={})=>fetch("https://api.github.com/repos/"+SY.repo+"/contents/"+p,{cache:"no-store",...o,headers:{Authorization:"Bearer "+SY.token,Accept:"application/vnd.github+json",...(o.headers||{})}});
+function merge(rem){const m=new Map();[...S.items,...(rem||[])].forEach(i=>{const o=m.get(i.id);if(!o||(i.upd||0)>(o.upd||0))m.set(i.id,i)});S.items=[...m.values()]}
+async function pull(){
+  const r=await api("data.json");if(r.status===404)return null;
+  if(!r.ok)throw new Error(r.status);
+  const j=await r.json();let txt;
+  if(j.content){const b=atob(j.content.replace(/\n/g,""));txt=new TextDecoder().decode(Uint8Array.from(b,c=>c.charCodeAt(0)))}
+  else txt=await(await api("data.json",{headers:{Accept:"application/vnd.github.raw+json"}})).text();
+  merge(JSON.parse(txt).items);return j.sha;
+}
+async function push(sha){
+  const b64=await new Promise(ok=>{const f=new FileReader();f.onload=()=>ok(f.result.split(",")[1]);f.readAsDataURL(new Blob([JSON.stringify({items:S.items})]))});
+  const r=await api("data.json",{method:"PUT",body:JSON.stringify({message:"sync",content:b64,...(sha?{sha}:{})})});
+  if(r.status===409||r.status===422)throw new Error("conflict");if(!r.ok)throw new Error(r.status);
+}
+async function sync(){
+  if(!SY)return;if(busy){again=true;return}
+  busy=true;setSt("☁️ синхронізую…");
+  try{for(let k=0;k<3;k++){try{
+      const sha=await pull();localStorage.setItem(KEY,JSON.stringify(S));render();
+      if(localStorage.getItem("wl_dirty")||!sha){await push(sha);localStorage.removeItem("wl_dirty")}
+      setSt("☁️ збережено на GitHub");break}
+    catch(e){if(e.message!=="conflict"||k===2)throw e}}}
+  catch(e){setSt(["401","403","404"].includes(e.message)?"⚠️ перевір репозиторій і токен ("+e.message+")":"⚠️ немає зв'язку, збережу пізніше")}
+  busy=false;if(again){again=false;schedule()}
+}
+function schedule(){if(!SY)return;clearTimeout(syncT);syncT=setTimeout(sync,1200)}
+function cloud(){
+  open(`<h2>☁️ Дані на GitHub</h2>
+  <div class="sub">Список зберігається у твоєму приватному репозиторії, а не лише в телефоні.</div>
+  <label>Репозиторій з даними</label><input id="c_r" value="${esc(SY?SY.repo:"Callisto227/wishlist-data")}" autocapitalize="off">
+  <label>Токен доступу</label><input id="c_t" type="password" placeholder="github_pat_…" value="${esc(SY?SY.token:"")}">
+  <button class="btn" id="c_ok">Підключити</button>${SY?'<button class="btn del" id="c_off">Відключити</button>':""}
+  <div class="sub" style="margin-top:12px;line-height:1.5">Токен: github.com → Settings → Developer settings → Fine-grained tokens → Generate. Репозиторій: лише <b>wishlist-data</b>. Права: Contents → Read and write. Токен зберігається тільки на цьому телефоні.</div>`);
+  $("c_ok").onclick=async()=>{const repo=$("c_r").value.trim(),token=$("c_t").value.trim();if(!repo||!token){toast("Заповни обидва поля 💕");return}
+    SY={repo,token};localStorage.setItem(SK,JSON.stringify(SY));localStorage.setItem("wl_dirty","1");close();await sync();render()};
+  if($("c_off"))$("c_off").onclick=()=>{SY=null;localStorage.removeItem(SK);setSt("📱 Тільки на телефоні");close()};
+}
+$("sync").onclick=cloud;
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)sync()});
+if(SY)sync();else setSt("📱 Тільки на телефоні · натисни, щоб підключити ☁️");
 
 if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();
 if("serviceWorker"in navigator)addEventListener("load",()=>navigator.serviceWorker.register("sw.js"));
